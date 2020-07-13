@@ -32,6 +32,18 @@
         .footnote {
             color: rgba(0, 0, 255, 0.712);
         }
+
+        button {
+        box-sizing: border-box;
+        background-color: #4caf50;
+        color: white;
+        padding: 16px 20px;
+        margin: 8px 0;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        opacity: 0.9;
+        }
     </style>
 </head>
 
@@ -45,7 +57,13 @@
 
     <h3><b>Result:</b></h3>
     <p>Number <span class="result"> <b> {{ number_decimal }}</b> </span>equals to <span class="result"><b>{{ number_roman }}</b></span> in Roman Numerals</p><br><br>
+    <button onclick="goBack()">Enter another number !</button>
 
+<script>
+function goBack() {
+  window.history.back();
+}
+</script>
 
     <p class="footnote"><i>This app is developed in Python by <b>{{ developer_name }}</b> and deployed with Flask on AWS
             EC2 Instance using AWS Clouldformation Service.</i></p>
