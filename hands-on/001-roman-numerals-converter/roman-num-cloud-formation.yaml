@@ -30,8 +30,11 @@ Resources:
             #!/bin/bash
             yum update -y
             yum install python3 -y
+            yum install pip3 -y
+            yum install Flask -y
             yum install git -y
-            git clone 
+            git clone https://github.com/Ummuhan-web/Clarusway-aws-workshop.git
+            python3 clarusway-aws-workshop/hands-on/001-roman-numerals-converter/app.py
 
 
 Outputs:
