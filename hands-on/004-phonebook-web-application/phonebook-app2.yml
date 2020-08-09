@@ -39,12 +39,14 @@ Resources:
         SecurityGroups:
         - !Ref LoadBalancerSecurityGroup
         Subnets: 
-          - subnet-f8b347d9
-          - subnet-4751f149
-          - subnet-fe774ac0
-          - subnet-01c02e67
-          - subnet-3a49a265
-          - subnet-db0eb096
+          - subnet-1920ce7f
+          - subnet-903ecab1
+          - subnet-cd13b3c3
+          - subnet-70d13b2f
+          - subnet-9cdfe2a2
+          - subnet-f8863fb5
+
+
         Type: application
       
   ALBListener : 
@@ -82,12 +84,13 @@ Resources:
         HealthCheckGracePeriod: 90
         HealthCheckType: ELB
         VPCZoneIdentifier:
-          - subnet-f8b347d9
-          - subnet-4751f149
-          - subnet-fe774ac0
-          - subnet-01c02e67
-          - subnet-3a49a265
-          - subnet-db0eb096
+          - subnet-1920ce7f
+          - subnet-903ecab1
+          - subnet-cd13b3c3
+          - subnet-70d13b2f
+          - subnet-9cdfe2a2
+          - subnet-f8863fb5
+
 
       UpdatePolicy:
         AutoScalingReplacingUpdate:
@@ -122,8 +125,7 @@ Resources:
               wget  https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/templates/delete.html           
               wget  https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/templates/index.html
               cd /home/ec2-user
-              wget https://raw.githubusercontent.com/betulbeyazoglu/aws-workshop/master/Projects/004-phonebook-web-application/app.py             
-              python3 app.py
+              wget https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/myapp.py 
 
   MySqlDatabase:
     Type: "AWS::RDS::DBInstance"
