@@ -118,9 +118,9 @@ Resources:
               export DB_HOST="${MySqlDatabase.Endpoint.Address}"
               cd /home/ec2-user
               mkdir templates && cd templates
-              wget 
-              wget             
-              wget 
+              wget https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/templates/add-update.html
+              wget  https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/templates/delete.html           
+              wget  https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/templates/index.html
               cd /home/ec2-user
               wget https://raw.githubusercontent.com/betulbeyazoglu/aws-workshop/master/Projects/004-phonebook-web-application/app.py             
               python3 app.py
