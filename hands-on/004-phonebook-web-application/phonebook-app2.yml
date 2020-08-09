@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CF template for Phonebook Application --> Creates RDS Instance and Application Load Balancer with Auto Scaling Group
+
+Resources:
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: vpc-44af953e
+      GroupDescription: Enable HTTP
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: vpc-44af953e
+      GroupDescription: Enable HTTP, SSH and MYSQL/Aurora
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        
+  ApplicationLoadBalancer : 
+      Type : AWS::ElasticLoadBalancingV2::LoadBalancer
+      Properties : 
+        SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+        Subnets: 
+          - subnet-f8b347d9
+          - subnet-4751f149
+          - subnet-fe774ac0
+          - subnet-01c02e67
+          - subnet-3a49a265
+          - subnet-db0eb096
+        Type: application
+      
+  ALBListener : 
+    Type : AWS::ElasticLoadBalancingV2::Listener
+    Properties : 
+      DefaultActions : 
+        - Type : forward
+          TargetGroupArn :  !Ref ALBTargetGroup
+      LoadBalancerArn : !Ref ApplicationLoadBalancer
+      Port : 80
+      Protocol : HTTP
+
+  ALBTargetGroup : 
+    Type : AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties : 
+      HealthCheckIntervalSeconds : 30
+      HealthCheckTimeoutSeconds : 5
+      HealthyThresholdCount : 3
+      Port : 80
+      Protocol : HTTP
+      UnhealthyThresholdCount : 5
+      VpcId :  vpc-44af953e
+
+  AutoScalingGroup:
+      Type: AWS::AutoScaling::AutoScalingGroup
+      Properties:
+        TargetGroupARNs: 
+          - !Ref ALBTargetGroup
+        LaunchTemplate:
+          LaunchTemplateId: !Ref MyLaunchTemplate
+          Version: !GetAtt MyLaunchTemplate.LatestVersionNumber
+        MaxSize: 3
+        MinSize: 1
+        DesiredCapacity: 2
+        HealthCheckGracePeriod: 90
+        HealthCheckType: ELB
+        VPCZoneIdentifier:
+          - subnet-f8b347d9
+          - subnet-4751f149
+          - subnet-fe774ac0
+          - subnet-01c02e67
+          - subnet-3a49a265
+          - subnet-db0eb096
+
+      UpdatePolicy:
+        AutoScalingReplacingUpdate:
+          WillReplace: True
+  
+  MyLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        InstanceType: t2.micro
+        ImageId: ami-02354e95b39ca8dec
+        KeyName: ummuhan
+        SecurityGroupIds: 
+          - !Ref InstanceSecurityGroup 
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub Web server of ${AWS::StackName}
+        UserData:
+          Fn::Base64:
+            !Sub |
+              #!/bin/bash
+              yum update -y
+              yum install -y python3
+              pip3 install flask
+              pip3 install flask_mysql
+              export DB_HOST="${MySqlDatabase.Endpoint.Address}"
+              cd /home/ec2-user
+              mkdir templates && cd templates
+              wget 
+              wget             
+              wget 
+              cd /home/ec2-user
+              wget https://raw.githubusercontent.com/betulbeyazoglu/aws-workshop/master/Projects/004-phonebook-web-application/app.py             
+              python3 app.py
+
+  MySqlDatabase:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBInstanceClass: db.t2.micro #required
+      DBInstanceIdentifier: phonebookapp-db
+      DBName: phonebook
+      Engine: MySQL
+      EngineVersion: 8.0.19
+      StorageType: gp2
+      AllocatedStorage: 20
+      MasterUserPassword: 12345678
+      MasterUsername: admin
+      Port: 3306
+      PubliclyAccessible: true
+      Tags:
+        - Key: Name
+          Value: !Sub RDS instance of ${AWS::StackName}
+     
+Outputs:
+  WebsiteURL:
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Description: The DNS name of Application Load Balancer

@@ -30,15 +30,13 @@ def alfa():
     number_decimal=int(number) 
     if number_decimal <= 0 or number_decimal >= 4000:
         return render_template('index.html', developer_name='Ummuhan', not_valid=True)
-    return  render_template('result.html', not_valid=False, developer_name='Ummuhan', number_decimal=number, number_roman=converter(number_decimal))    
+    return  render_template('result.html', not_valid=True, developer_name='Ummuhan', number_decimal=number, number_roman=converter(number_decimal))    
      
-
+if __name__=='__main__':
+    app.run(debug=True)
+    app.run('localhost', port=5000, debug=True)
+    #app.run('0.0.0.0', port=80)
        
     
 
 
-
-if __name__=='__main__':   
-   # app.run(debug=True)
-    # app.run('localhost', port=5000, debug=True)
-    app.run('0.0.0.0', port=80)

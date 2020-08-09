@@ -22,10 +22,10 @@ def converter():
           result= f"Hours:{hours}, Minutes:{minutes}, Seconds:{seconds}"
           return render_template('result.html', developer_name="Ummuhan", not_valid=True, milliseconds=millis, result=result)
        else:
-          return render_template('index.html', developer_name="Ummuhan", not_valid=False)
+          return render_template('index.html', developer_name="Ummuhan", not_valid=True)
 
     else:
-        return render_template('index.html', developer_name="Ummuhan", not_valid=False)
+        return render_template('index.html', developer_name="Ummuhan", not_valid=True)
 
 
 

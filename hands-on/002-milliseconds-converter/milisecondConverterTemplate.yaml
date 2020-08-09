@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CF template for Millisecond Converter Application --> Creates Application Load Balancer with Auto Scaling Group
+Parameters:
+
+  LinuxAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+Resources:
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: vpc-e618229c
+      GroupDescription: Enable HTTP
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: vpc-e618229c
+      GroupDescription: Enable HTTP
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+
+  ApplicationLoadBalancer : 
+      Type : AWS::ElasticLoadBalancingV2::LoadBalancer
+      Properties : 
+        SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+        Subnets: 
+          - subnet-f8b347d9
+          - subnet-4751f149
+          - subnet-fe774ac0
+          - subnet-01c02e67
+          - subnet-3a49a265
+          - subnet-db0eb096
+        Type: application
+      
+      
+  ALBListener : 
+    Type : AWS::ElasticLoadBalancingV2::Listener
+    Properties : 
+      DefaultActions : 
+        - Type : forward
+          TargetGroupArn :  !Ref ALBTargetGroup
+      LoadBalancerArn : !Ref ApplicationLoadBalancer
+      Port : 80
+      Protocol : HTTP
+
+  ALBTargetGroup : 
+    Type : AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties : 
+      HealthCheckIntervalSeconds : 30
+      HealthCheckTimeoutSeconds : 5
+      HealthyThresholdCount : 3
+      Port : 80
+      Protocol : HTTP
+      UnhealthyThresholdCount : 5
+      VpcId : vpc-e618229c 
+
+  AutoScalingGroup:
+      Type: AWS::AutoScaling::AutoScalingGroup
+      Properties:
+        TargetGroupARNs: 
+          - !Ref ALBTargetGroup
+        LaunchTemplate:
+          LaunchTemplateId: !Ref MyLaunchTemplate
+          Version: !GetAtt MyLaunchTemplate.LatestVersionNumber
+        MaxSize: 3
+        MinSize: 1
+        DesiredCapacity: 2
+        HealthCheckGracePeriod: 90
+        HealthCheckType: ELB
+        VPCZoneIdentifier:
+          - subnet-f8b347d9
+          - subnet-4751f149
+          - subnet-fe774ac0
+          - subnet-01c02e67
+          - subnet-3a49a265
+          - subnet-db0eb096
+
+      UpdatePolicy:
+        AutoScalingReplacingUpdate:
+          WillReplace: True
+  
+
+  MyLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        InstanceType: t2.micro
+        ImageId: !Ref LinuxAmiId
+        SecurityGroupIds: 
+          - !Ref InstanceSecurityGroup 
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub Web server of ${AWS::StackName}
+        UserData:
+          Fn::Base64:
+            !Sub |
+              #!/bin/bash
+              yum update -y
+              yum install -y python3
+              pip3 install flask
+              cd /home/ec2-user
+              mkdir templates && cd templates
+              wget https://raw.githubusercontent.com/betulbeyazoglu/aws-workshop/master/Projects/002-milliseconds-converter/templates/index.html
+              wget https://raw.githubusercontent.com/betulbeyazoglu/aws-workshop/master/Projects/002-milliseconds-converter/templates/result.html
+              cd /home/ec2-user
+              wget https://raw.githubusercontent.com/betulbeyazoglu/aws-workshop/master/Projects/002-milliseconds-converter/app.py
+              python3 app.py
+  
+  
+Outputs:
+  WebsiteURL:
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Description: The DNS name of Application Load Balancer

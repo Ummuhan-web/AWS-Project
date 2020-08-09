@@ -31,7 +31,7 @@ Resources:
             yum update -y
             yum install python3 -y
             yum install pip3 -y
-            pip3 install flask 
+            pip3 install flask
             yum install git -y
             cd home/ec2-user
             git clone https://github.com/Ummuhan-web/Clarusway-aws-workshop.git
