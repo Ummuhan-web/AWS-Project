@@ -126,7 +126,7 @@ Resources:
               wget  https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/templates/index.html
               cd /home/ec2-user
               wget https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/myapp.py 
-
+              python3 app.py
   MySqlDatabase:
     Type: "AWS::RDS::DBInstance"
     Properties:

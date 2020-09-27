@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'Roman number converter web server'
+Description: "Roman number converter web server"
 
 Resources:
- WebServerSecurityGroup:
+  WebServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Enable HTTP
@@ -12,35 +12,32 @@ Resources:
           ToPort: 80
           CidrIp: 0.0.0.0/0
 
- WebServerHost:
-   Type: AWS::EC2::Instance         
-   Properties:
+  WebServerHost:
+    Type: AWS::EC2::Instance
+    Properties:
       ImageId: ami-08f3d892de259504d
       InstanceType: t2.micro
       SecurityGroupIds:
         - !Ref WebServerSecurityGroup
-      Tags:                
-        -                        
-          Key: Name
+      Tags:
+        - Key: Name
           Value: !Sub Web Server of ${AWS::StackName} Stack
-      
-      UserData:
-        Fn::Base64:
-          !Sub |
-            #!/bin/bash
-            yum update -y
-            yum install python3 -y
-            yum install pip3 -y
-            pip3 install flask
-            yum install git -y
-            cd home/ec2-user
-            git clone https://github.com/Ummuhan-web/Clarusway-aws-workshop.git
-            python3 Clarusway-aws-workshop/hands-on/001-roman-numerals-converter/app.py
 
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install python3 -y
+          yum install pip3 -y
+          pip3 install flask
+          yum install git -y
+          cd home/ec2-user
+          git clone https://github.com/Ummuhan-web/Clarusway-aws-workshop.git
+          python3 Clarusway-aws-workshop/hands-on/001-roman-numerals-converter/app.py
 
 Outputs:
   WebsiteURL:
-    Value: !Sub 
+    Value: !Sub
       - http://${PublicAddress}
       - PublicAddress: !GetAtt WebServerHost.PublicDnsName
     Description: Roman Numerals Converter Application URL
