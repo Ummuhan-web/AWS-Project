@@ -3,7 +3,7 @@ from mysql.connector import errorcode
 
 config={
     'user': 'admin',
-    'password': 'Callahan_1',
+    'password': '12345678',
     'host':'phonebookapp-db.c86k4tf5ziuc.us-east-1.rds.amazonaws.com',
     'database':'phonebook',
     'raise_on_warnings':True
