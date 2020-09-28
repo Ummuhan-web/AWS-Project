@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: CF template for Phonebook Application --> Creates RDS Instance and Application Load Balancer with Auto Scaling Group
+Description: CF template for Phonebook Application. Creates RDS Instance and Application Load Balancer with Auto Scaling Group
 
 Resources:
 
@@ -7,7 +7,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: vpc-44af953e
-      GroupDescription: Enable HTTP
+      GroupDescription: Enable HTTP for ALB
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -18,15 +18,13 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: vpc-44af953e
-      GroupDescription: Enable HTTP, SSH and MYSQL/Aurora
+      GroupDescription: Enable HTTP, SSH 
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
         - IpProtocol: tcp
-          FromPort: 3306
-          ToPort: 3306
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 22
@@ -36,6 +34,8 @@ Resources:
   ApplicationLoadBalancer : 
       Type : AWS::ElasticLoadBalancingV2::LoadBalancer
       Properties : 
+        IpAddressType: ipv4
+        Scheme: internet-facing
         SecurityGroups:
         - !Ref LoadBalancerSecurityGroup
         Subnets: 
@@ -45,8 +45,6 @@ Resources:
           - subnet-70d13b2f
           - subnet-9cdfe2a2
           - subnet-f8863fb5
-
-
         Type: application
       
   ALBListener : 
@@ -81,20 +79,16 @@ Resources:
         MaxSize: 3
         MinSize: 1
         DesiredCapacity: 2
-        HealthCheckGracePeriod: 90
+        HealthCheckGracePeriod: 300
         HealthCheckType: ELB
-        VPCZoneIdentifier:
-          - subnet-1920ce7f
-          - subnet-903ecab1
-          - subnet-cd13b3c3
-          - subnet-70d13b2f
-          - subnet-9cdfe2a2
-          - subnet-f8863fb5
+        AvailabilityZones:
+          !GetAZs ""
 
 
-      UpdatePolicy:
-        AutoScalingReplacingUpdate:
-          WillReplace: True
+
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: True
   
   MyLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
@@ -127,9 +121,13 @@ Resources:
               cd /home/ec2-user
               wget https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/myapp.py 
               python3 app.py
+ 
   MySqlDatabase:
     Type: "AWS::RDS::DBInstance"
     Properties:
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      BackupRetentionPeriod: 0
       DBInstanceClass: db.t2.micro #required
       DBInstanceIdentifier: phonebookapp-db
       DBName: phonebook
@@ -137,13 +135,16 @@ Resources:
       EngineVersion: 8.0.19
       StorageType: gp2
       AllocatedStorage: 20
+      DeletionProtection: false
       MasterUserPassword: 12345678
       MasterUsername: admin
       Port: 3306
+      MonitoringInterval: 0
+      MultiAZ: false
       PubliclyAccessible: true
       Tags:
         - Key: Name
-          Value: !Sub RDS instance of ${AWS::StackName}
+          Value: !Sub RDS instance of ${AWS::StackName}  
      
 Outputs:
   WebsiteURL:
