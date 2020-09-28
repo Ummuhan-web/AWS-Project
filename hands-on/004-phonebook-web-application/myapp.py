@@ -3,11 +3,19 @@ from flaskext.mysql import MySQL
 import os
 app= Flask(__name__)
 
-app.config['MYSQL_DATABASE_HOST'] = os.getenv('DB_URI','phonebookdatabase.c86k4tf5ziuc.us-east-1.rds.amazonaws.com')
+db_endpoint = open('/home/ec2-user/dbserver.endpoint', 'r', encoding='UTF-8')
+
+# Configure mysql database
+app.config['MYSQL_DATABASE_HOST'] = db_endpoint.readline().strip()
+# app.config['MYSQL_DATABASE_HOST'] = os.getenv('DB_URL_2')
 app.config['MYSQL_DATABASE_USER'] = 'admin'
 app.config['MYSQL_DATABASE_PASSWORD'] = '12345678'
 app.config['MYSQL_DATABASE_DB'] = 'phonebook'
-app.config['MYSQL_DATABASE_PORT'] = os.getenv('DB_Port', 3306)
+app.config['MYSQL_DATABASE_PORT'] = 3306
+
+db_endpoint.close()
+
+
 mysql = MySQL()
 mysql.init_app(app)
 connection = mysql.connect()
@@ -36,15 +44,13 @@ def init_todo_db():
     cursor.execute(phonebook_table)
     cursor.execute(data)
 
-def find_person(name, number):
-    query = f"""
-    SElECT *FROM phonebook WHERE name like '%{keyword.strip().lover()}%;
+def find_persons(keyword):
+    query=f"""
+    SELECT * FROM phonebook WHERE name like '%{keyword.strip().lower()}%';
     """
     cursor.execute(query)
     result = cursor.fetchall()
-    person =[{'id':row[0], 'name':row[1].strip().title(), 'number':row[2]} for row in result]
-    if len(persons) ==0:
-        persons = [{'name':'No Result', 'number' : 'No Result'}]
+    persons = [{'id':row[0], 'name':row[1].strip().title(), 'number':row[2]} for row in result]
     return persons
 
 def insert_person(name, number):
@@ -53,44 +59,60 @@ def insert_person(name, number):
     """
     cursor.execute(query)
     row = cursor.fetchone()
+
     if row is not None:
-        return f'Person with name{row[1].title()} already exist'
+        return f'Person with name {row[1].title()} already exits.'
+    
     insert = f"""
-    INSERT INTO phonebook (name,number) 
-    VALUES ('{name.strip().lower()}','{number}');
+    INSERT INTO phonebook (name, number)
+    VALUES ('{name.strip().lower()}', '{number}');
     """
+
     cursor.execute(insert)
     result = cursor.fetchall()
-    return f'Person {name.stip().title()} added to Phonebook succesfully'
 
+    return f'Person {name.strip().title()} added to Phonebook successfully'
 
 def update_person(name, number):
     query = f"""
-    SELECT * FROM phonebook WHERE name like {name.strip().lower()};
+    SELECT * FROM phonebook WHERE name like '{name.strip().lower()}';
     """
+
     cursor.execute(query)
     row = cursor.fetchone()
+
     if row is None:
-        return f'Person with name {name.strip().lower()} does not exist.'
+        return f'Person with name {name.strip().title()} does not exits.'
     
     update = f"""
     UPDATE phonebook
-    SET name = '{row[1]}', number = '{number}'
-    WHERE id = {row[0]};
+    SET name='{row[1]}', number = '{number}'
+    WHERE id= {row[0]};
     """
 
     cursor.execute(update)
 
-    return f'Phone record odf {name.strip().title()} is updated sucsesfully'
+    return f'Phone record of {name.strip().title()} is updated successfully '
 
 
 def delete_person(name):
-     query = f"""
-     DELETE FROM phonebook 
-     WHERE id = {row[0]};
-     """  
-     cursor.execute(delete)
-     return f'Phone record of {name.strip().title()} is deleted from the phonebook sucssefully'
+    query = f"""
+    SELECT * FROM phonebook WHERE name like '{name.strip().lower()}';
+    """
+
+    cursor.execute(query)
+    row = cursor.fetchone()
+
+    if row is None:
+        return f'Person with name {name.strip().title()} does not exist, no need to delete.'
+    
+    delete = f"""
+    DELETE FROM phonebook
+    WHERE id= {row[0]};
+    """
+
+    cursor.execute(delete)
+    return f'Phone record of {name.strip().title()} is deleted from the phonebook successfully.'
 
 
 @app.route('/', methods=["GET", "POST"])
