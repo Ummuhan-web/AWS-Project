@@ -22,56 +22,62 @@ connection = mysql.connect()
 connection.autocommit(True)
 cursor = connection.cursor()
 
+#this function will run it locally in init-pb-db.py
+# def init_todo_db():
+#     drop_table = 'DROP TABLE IF EXISTS phonebook.phonebook;'
+#     phonebook_table = """
+#     CREATE TABLE phonebook(
+#     id INT NOT NULL AUTO_INCREMENT,
+#     name VARCHAR(100) NOT NULL,
+#     number VARCHAR(100) NOT NULL,
+#     PRIMARY KEY (id)
+#     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+#     """
+#     data = """
+#     INSERT INTO phonebook.phonebook (name, number)
+#     VALUES
+#         ("Amy", "1234567890"),
+#         ("Ozzy", "67854"),
+#         ("Ayvi", "876543554");
+#     """
+#     cursor.execute(drop_table)
+#     cursor.execute(phonebook_table)
+#     cursor.execute(data)
 
-def init_todo_db():
-    drop_table = 'DROP TABLE IF EXISTS phonebook.phonebook;'
-    phonebook_table = """
-    CREATE TABLE phonebook(
-    id INT NOT NULL AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL,
-    number VARCHAR(100) NOT NULL,
-    PRIMARY KEY (id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    """
-    data = """
-    INSERT INTO phonebook.phonebook (name, number)
-    VALUES
-        ("Amy", "1234567890"),
-        ("Ozzy", "67854"),
-        ("Ayvi", "876543554");
-    """
-    cursor.execute(drop_table)
-    cursor.execute(phonebook_table)
-    cursor.execute(data)
-
-def find_persons(keyword):
-    query=f"""
-    SELECT * FROM phonebook WHERE name like '%{keyword.strip().lower()}%';
+def find_number(keyword):
+    query = f"""
+    SELECT * FROM persons WHERE name like '%{keyword}%';
     """
     cursor.execute(query)
     result = cursor.fetchall()
-    persons = [{'id':row[0], 'name':row[1].strip().title(), 'number':row[2]} for row in result]
+    persons= [{"name":row[1], "number":row[2]} for row in result]
+   
+    if not any(persons):
+        persons = [{"name":'Not found.', "number":'Not Found.'}]
     return persons
 
-def insert_person(name, number):
+
+def add_number(name, number):
     query = f"""
-    SELECT * FROM phonebook WHERE name like '{name.strip().lower()}';
+    SELECT * FROM persons WHERE name like '{name}';
     """
     cursor.execute(query)
-    row = cursor.fetchone()
-
-    if row is not None:
-        return f'Person with name {row[1].title()} already exits.'
-    
-    insert = f"""
-    INSERT INTO phonebook (name, number)
-    VALUES ('{name.strip().lower()}', '{number}');
-    """
-
-    cursor.execute(insert)
     result = cursor.fetchall()
+    response = 'Error occurred..'
+    if name == " " or number == " ":
+        response = 'person or number can not be emtpy!!'
+    elif not any(result):
+        insert = f"""
+        INSERT INTO persons(name,number) 
+        VALUES ('{name}', '{number}');
+        """
+        cursor.execute(insert)
+        connection.commit()
+        response = f'{name} successfully added to phonebook'
+    else:
+        response = f'{name} already exits.'
+    return response
 
-    return f'Person {name.strip().title()} added to Phonebook successfully'
 
 def update_person(name, number):
     query = f"""
@@ -119,8 +125,8 @@ def delete_person(name):
 def find_records():
     if request.method == 'POST':
          keyword = request.form['username']
-         persons = find_persons(keyword)
-         return render_tamplate('index.html', persons=persons, keyword=keyword, show_result=True, developer_name="Ummuhan")
+         persons = find_number(keyword)
+         return render_template('index.html', persons=persons, keyword=keyword, show_result=True, developer_name="Ummuhan")
     else:
          return render_template('index.html', show_result=False, developer_name='Ummuhan')
 
@@ -129,7 +135,7 @@ def add_record():
     if request.method == 'POST':
         name = request.form['username']
         if name is None or name.strip() == "":
-            return render_tamplate('add-update.html', not_valid=True, message='Invalid input: Name can not be empty', show_result=False, action_name='save', developer_name='Ummuhan')
+            return render_template('add-update.html', not_valid=True, message='Invalid input: Name can not be empty', show_result=False, action_name='save', developer_name='Ummuhan')
         elif name.isdecimal():
             return render_template('add-update.html', not_valid=True, message='Invalid input: Name of person should be text', show_result=False, action_name='save', developer_name='Ummuhan')
         phone_number = request.form['phonenumber']
@@ -175,7 +181,7 @@ def delete_record():
 
 
 if __name__=='__main__':
-    init_todo_db()
+    #init_todo_db()
     #app.run(debug=True)       
     app.run(host='0.0.0.0', port=80)        
         

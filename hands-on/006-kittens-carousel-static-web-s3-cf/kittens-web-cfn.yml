@@ -4,10 +4,10 @@ Description: |
   This template deploys Kitten Carousel App on S3 served through Cloudfront and Route 53.
 Parameters:
   DomainName:
-    Description: DNS name of an existing Route 53 Hosted Zone ex. clarusway.us
+    Description: DNS name of an existing Route 53 Hosted Zone ex. ummuhany.me
     Type: AWS::Route53::HostedZone::Id
   KittensDomainName:
-    Description: Sub domain name for project ex.. kittens.clarusway.us
+    Description: Sub domain name for project ex.. kittens.ummuhany.me
     Type: String
     AllowedPattern: (?!-)[a-zA-Z0-9-.]{1,63}(?<!-)
     ConstraintDescription: Must be a valid DNS Zone name
