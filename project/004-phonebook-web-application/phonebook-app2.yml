@@ -2,43 +2,73 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: CF template for Phonebook Application. Creates RDS Instance and Application Load Balancer with Auto Scaling Group
 
 Resources:
-
-  LoadBalancerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+  ALBSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
     Properties:
-      VpcId: vpc-44af953e
-      GroupDescription: Enable HTTP for ALB
+      GroupDescription: Enable HTTP for ALB #required
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-  
-  InstanceSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+  WebServerSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
     Properties:
-      VpcId: vpc-44af953e
-      GroupDescription: Enable HTTP, SSH 
+      GroupDescription: Enable HTTP for Phonebook #required
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
-        - IpProtocol: tcp
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
-        
-  ApplicationLoadBalancer : 
-      Type : AWS::ElasticLoadBalancingV2::LoadBalancer
-      Properties : 
-        IpAddressType: ipv4
-        Scheme: internet-facing
-        SecurityGroups:
-        - !Ref LoadBalancerSecurityGroup
-        Subnets: 
+          SourceSecurityGroupId: !GetAtt ALBSecurityGroup.GroupId
+  WebServerLT:
+    Type: "AWS::EC2::LaunchTemplate"
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-0947d2ba12ee1ff75
+        InstanceType: t2.micro
+        SecurityGroupIds:
+          - !GetAtt  WebServerSecurityGroup.GroupId
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub Web Server of ${AWS::StackName} Stack
+        UserData: 
+          Fn::Base64:
+            !Sub
+              - | 
+                #! /bin/bash
+                yum update -y
+                yum install python3 -y
+                pip3 install flask
+                pip3 install flask_mysql
+                echo "${MyDBURI}" > /home/ec2-user/dbserver.endpoint
+                TOKEN="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                FOLDER="https://$TOKEN@raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/tree/master/project/004-phonebook-web-application/"
+                curl -s --create-dirs -o "/home/ec2-user/templates/index.html" -L "$FOLDER"templates/index.html
+                curl -s --create-dirs -o "/home/ec2-user/templates/add-update.html" -L "$FOLDER"templates/add-update.html
+                curl -s --create-dirs -o "/home/ec2-user/templates/delete.html" -L "$FOLDER"templates/delete.html
+                curl -s --create-dirs -o "/home/ec2-user/app.py" -L "$FOLDER"app.py
+                python3 /home/ec2-user/app.py
+              - MyDBURI: !GetAtt MyDatabaseServer.Endpoint.Address
+  WebServerTG:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      UnhealthyThresholdCount: 3
+      VpcId: !GetAtt WebServerSecurityGroup.VpcId
+  ApplicationLoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      SecurityGroups:
+        - !GetAtt ALBSecurityGroup.GroupId
+       
+      Subnets: 
           - subnet-1920ce7f
           - subnet-903ecab1
           - subnet-cd13b3c3
@@ -46,107 +76,61 @@ Resources:
           - subnet-9cdfe2a2
           - subnet-f8863fb5
         Type: application
-      
-  ALBListener : 
-    Type : AWS::ElasticLoadBalancingV2::Listener
-    Properties : 
-      DefaultActions : 
-        - Type : forward
-          TargetGroupArn :  !Ref ALBTargetGroup
-      LoadBalancerArn : !Ref ApplicationLoadBalancer
-      Port : 80
-      Protocol : HTTP
-
-  ALBTargetGroup : 
-    Type : AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties : 
-      HealthCheckIntervalSeconds : 30
-      HealthCheckTimeoutSeconds : 5
-      HealthyThresholdCount : 3
-      Port : 80
-      Protocol : HTTP
-      UnhealthyThresholdCount : 5
-      VpcId :  vpc-44af953e
-
-  AutoScalingGroup:
-      Type: AWS::AutoScaling::AutoScalingGroup
-      Properties:
-        TargetGroupARNs: 
-          - !Ref ALBTargetGroup
-        LaunchTemplate:
-          LaunchTemplateId: !Ref MyLaunchTemplate
-          Version: !GetAtt MyLaunchTemplate.LatestVersionNumber
-        MaxSize: 3
-        MinSize: 1
-        DesiredCapacity: 2
-        HealthCheckGracePeriod: 300
-        HealthCheckType: ELB
-        AvailabilityZones:
-          !GetAZs ""
-
-
-
-    UpdatePolicy:
-      AutoScalingReplacingUpdate:
-        WillReplace: True
-  
-  MyLaunchTemplate:
-    Type: AWS::EC2::LaunchTemplate
+    ALBListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
     Properties:
-      LaunchTemplateData:
-        InstanceType: t2.micro
-        ImageId: ami-02354e95b39ca8dec
-        KeyName: ummuhan
-        SecurityGroupIds: 
-          - !Ref InstanceSecurityGroup 
-        TagSpecifications:
-          - ResourceType: instance
-            Tags:
-              - Key: Name
-                Value: !Sub Web server of ${AWS::StackName}
-        UserData:
-          Fn::Base64:
-            !Sub |
-              #!/bin/bash
-              yum update -y
-              yum install -y python3
-              pip3 install flask
-              pip3 install flask_mysql
-              export DB_HOST="${MySqlDatabase.Endpoint.Address}"
-              cd /home/ec2-user
-              mkdir templates && cd templates
-              wget https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/templates/add-update.html
-              wget  https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/templates/delete.html           
-              wget  https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/templates/index.html
-              cd /home/ec2-user
-              wget https://raw.githubusercontent.com/Ummuhan-web/Clarusway-aws-workshop/master/hands-on/004-phonebook-web-application/myapp.py 
-              python3 app.py
- 
-  MySqlDatabase:
+      DefaultActions: #required
+        - TargetGroupArn: !Ref WebServersTG
+          Type: forward
+      LoadBalancerArn: !Ref ApplicationLoadBalancer #required
+      Port: 80 #required
+      Protocol: HTTP #required
+  WebServerASG:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      AvailabilityZones:
+        !GetAZs ""
+      DesiredCapacity: 2
+      HealthCheckGracePeriod: 90
+      HealthCheckType: ELB
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WebServerLT
+        Version: !GetAtt WebServerLT.LatestVersionNumber
+      MaxSize: 3 #required
+      MinSize: 1 #required
+      TargetGroupARNs:
+        - !Ref WebServersTG    
+  MyDBSecurityGroup:
+    Type: "AWS::RDS::DBSecurityGroup"
+    Properties:
+      DBSecurityGroupIngress: #required
+        - EC2SecurityGroupId: !GetAtt WebServerSecurityGroup.GroupId
+        - CIDRIP: 0.0.0.0/0
+      GroupDescription: Frontend Access #required
+  MyDatabaseServer:
     Type: "AWS::RDS::DBInstance"
     Properties:
+      AllocatedStorage: 20
       AllowMajorVersionUpgrade: false
       AutoMinorVersionUpgrade: true
       BackupRetentionPeriod: 0
       DBInstanceClass: db.t2.micro #required
-      DBInstanceIdentifier: phonebookapp-db
+      DBInstanceIdentifier: phonebook-db
       DBName: phonebook
+      DBSecurityGroups:
+        - !Ref MyDBSecurityGroup
+      DeletionProtection: false
       Engine: MySQL
       EngineVersion: 8.0.19
-      StorageType: gp2
-      AllocatedStorage: 20
-      DeletionProtection: false
       MasterUserPassword: 12345678
       MasterUsername: admin
-      Port: 3306
       MonitoringInterval: 0
       MultiAZ: false
+      Port: 3306
       PubliclyAccessible: true
-      Tags:
-        - Key: Name
-          Value: !Sub RDS instance of ${AWS::StackName}  
-     
 Outputs:
   WebsiteURL:
-    Value: !GetAtt ApplicationLoadBalancer.DNSName
-    Description: The DNS name of Application Load Balancer
+    Description: Phonebook App URL
+    Value: !Sub 
+      - http://${ALBAddress}
+      - ALBAddress: !GetAtt ApplicationLoadBalancer.DNSName
