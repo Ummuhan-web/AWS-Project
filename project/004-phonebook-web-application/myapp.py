@@ -44,40 +44,34 @@ cursor = connection.cursor()
 #     cursor.execute(phonebook_table)
 #     cursor.execute(data)
 
-def find_number(keyword):
-    query = f"""
-    SELECT * FROM persons WHERE name like '%{keyword}%';
+def find_persons(keyword):
+    query=f"""
+    SELECT * FROM phonebook WHERE name like '%{keyword.strip().lower()}%';
     """
     cursor.execute(query)
     result = cursor.fetchall()
-    persons= [{"name":row[1], "number":row[2]} for row in result]
-   
-    if not any(persons):
-        persons = [{"name":'Not found.', "number":'Not Found.'}]
+    persons = [{'id':row[0], 'name':row[1].strip().title(), 'number':row[2]} for row in result]
     return persons
 
-
-def add_number(name, number):
+def insert_person(name, number):
     query = f"""
-    SELECT * FROM persons WHERE name like '{name}';
+    SELECT * FROM phonebook WHERE name like '{name.strip().lower()}';
     """
     cursor.execute(query)
-    result = cursor.fetchall()
-    response = 'Error occurred..'
-    if name == " " or number == " ":
-        response = 'person or number can not be emtpy!!'
-    elif not any(result):
-        insert = f"""
-        INSERT INTO persons(name,number) 
-        VALUES ('{name}', '{number}');
-        """
-        cursor.execute(insert)
-        connection.commit()
-        response = f'{name} successfully added to phonebook'
-    else:
-        response = f'{name} already exits.'
-    return response
+    row = cursor.fetchone()
 
+    if row is not None:
+        return f'Person with name {row[1].title()} already exits.'
+    
+    insert = f"""
+    INSERT INTO phonebook (name, number)
+    VALUES ('{name.strip().lower()}', '{number}');
+    """
+
+    cursor.execute(insert)
+    result = cursor.fetchall()
+
+    return f'Person {name.strip().title()} added to Phonebook successfully'
 
 def update_person(name, number):
     query = f"""
@@ -99,7 +93,6 @@ def update_person(name, number):
     cursor.execute(update)
 
     return f'Phone record of {name.strip().title()} is updated successfully '
-
 
 def delete_person(name):
     query = f"""
